@@ -21,14 +21,14 @@
     particles = Array.from({length: count}, () => ({
       x: Math.random() * width, y: Math.random() * height,
       vx: (Math.random() - .5) * .28, vy: (Math.random() - .5) * .28,
-      radius: Math.random() * 1.2 + .6
+      radius: Math.random() * 1.3 + 1.1
     }));
     draw(0);
   }
   function draw(delta) {
     context.clearRect(0, 0, width, height);
     const rgb = document.documentElement.dataset.theme === 'dark' ? '215,215,215' : '30,30,30';
-    const reach = width < 600 ? 115 : 165;
+    const reach = width < 600 ? 135 : 190;
     for (const p of particles) {
       if (delta) {
         p.x += p.vx * delta; p.y += p.vy * delta;
@@ -41,21 +41,22 @@
         if (p.y < 0 || p.y > height) {p.vy *= -1; p.y = Math.max(0, Math.min(height, p.y));}
       }
       context.beginPath(); context.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      context.fillStyle = `rgba(${rgb},.32)`; context.fill();
+      context.fillStyle = `rgba(${rgb},.68)`; context.fill();
     }
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const a = particles[i], b = particles[j], distance = Math.hypot(a.x - b.x, a.y - b.y);
         if (distance < reach) {
           context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(b.x, b.y);
-          context.strokeStyle = `rgba(${rgb},${.23 * (1 - distance / reach)})`;
-          context.lineWidth = .7; context.stroke();
+          context.strokeStyle = `rgba(${rgb},${.52 * (1 - distance / reach)})`;
+          context.lineWidth = 1; context.stroke();
         }
       }
       const a = particles[i], distance = Math.hypot(a.x - pointer.x, a.y - pointer.y);
       if (distance < reach && !reducedMotion.matches) {
         context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(pointer.x, pointer.y);
-        context.strokeStyle = `rgba(${rgb},${.24 * (1 - distance / reach)})`; context.stroke();
+        context.strokeStyle = `rgba(${rgb},${.62 * (1 - distance / reach)})`;
+        context.lineWidth = 1.15; context.stroke();
       }
     }
   }
