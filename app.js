@@ -61,6 +61,7 @@
     }
   }
   function animate(time) {
+    if (scrollY > innerHeight * 1.4) {previous = 0; frame = requestAnimationFrame(animate); return;}
     draw(previous ? Math.min((time - previous) / 16.67, 2) : 1);
     previous = time;
     frame = requestAnimationFrame(animate);
@@ -100,7 +101,7 @@ const sections=[...document.querySelectorAll('main>.section')];
   progress.setAttribute('aria-hidden', 'true');
   document.body.append(progress, rail);
   const chapters = [document.querySelector('.hero'), ...sections];
-  const names = ['Introduction', 'About', 'Experience', 'Projects', 'Résumé', 'Contact'];
+  const names = ['Introduction', ...sections.map(s => s.querySelector('h2').textContent.trim())];
   chapters.forEach((section, index) => {
     const link = document.createElement('a');
     link.href = index === 0 ? '#top' : '#' + section.id;
