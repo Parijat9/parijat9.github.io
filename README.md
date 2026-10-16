@@ -1,7 +1,24 @@
 # Parijat Anand
 
-Personal portfolio: https://parijat9.github.io/
+My portfolio brings together my work experience, projects and résumé.
 
-A static HTML, CSS and JavaScript site. Open `index.html` or serve the directory with `python -m http.server 8000`.
+[Visit the website](https://parijat9.github.io/)
 
-Published from the main branch through GitHub Pages.
+![Portfolio preview](assets/portfolio-preview.png)
+
+## What you can explore
+
+- Experience in logistics reporting and automation.
+- Project summaries with screenshots and links to sample reports.
+- A downloadable résumé and contact links.
+- Light and dark themes, with chapter navigation as you scroll.
+
+## Run it locally
+
+```bash
+python -m http.server 8000
+```
+
+Open `http://localhost:8000` in a browser. The site uses HTML, CSS and JavaScript. GitHub Pages publishes the main branch.
+
+Edit `index.html` for the wording, `style.css` for the appearance and `app.js` for the interactions.
