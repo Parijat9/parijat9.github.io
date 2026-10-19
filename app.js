@@ -28,7 +28,7 @@
   }
   function draw(delta) {
     context.clearRect(0, 0, width, height);
-    const rgb = document.documentElement.dataset.theme === 'dark' ? '172,199,179' : '55,83,64';
+    const rgb = document.documentElement.dataset.theme === 'dark' ? '210,212,215' : '28,29,32';
     const reach = width < 600 ? 135 : 190;
     for (const p of particles) {
       if (delta) {
