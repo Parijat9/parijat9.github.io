@@ -9,6 +9,7 @@
   if (!context) return;
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let width = 0, height = 0, particles = [], frame = 0, previous = 0;
+  let heroVisible = true;
   const pointer = {x: -1000, y: -1000};
   function resize() {
     width = window.innerWidth;
@@ -27,7 +28,7 @@
   }
   function draw(delta) {
     context.clearRect(0, 0, width, height);
-    const rgb = document.documentElement.dataset.theme === 'dark' ? '190,198,211' : '38,42,48';
+    const rgb = document.documentElement.dataset.theme === 'dark' ? '172,199,179' : '55,83,64';
     const reach = width < 600 ? 135 : 190;
     for (const p of particles) {
       if (delta) {
@@ -61,14 +62,13 @@
     }
   }
   function animate(time) {
-    if (scrollY > innerHeight * 1.4) {previous = 0; frame = requestAnimationFrame(animate); return;}
     draw(previous ? Math.min((time - previous) / 16.67, 2) : 1);
     previous = time;
     frame = requestAnimationFrame(animate);
   }
   function start() {
     cancelAnimationFrame(frame); previous = 0;
-    if (!reducedMotion.matches && !document.hidden) frame = requestAnimationFrame(animate);
+    if (!reducedMotion.matches && !document.hidden && heroVisible && !document.documentElement.classList.contains('motion-paused')) frame = requestAnimationFrame(animate);
     else draw(0);
   }
   window.addEventListener('resize', resize, {passive: true});
@@ -79,6 +79,10 @@
   window.addEventListener('blur', () => {pointer.x = pointer.y = -1000;});
   document.addEventListener('visibilitychange', start);
   reducedMotion.addEventListener('change', start);
+  document.addEventListener('portfolio-motion-change', start);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(entries => {heroVisible = entries[0].isIntersecting; start();}).observe(document.querySelector('.hero'));
+  }
   new MutationObserver(() => {if (reducedMotion.matches) draw(0);}).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
   resize(); start();
 })();
@@ -88,72 +92,29 @@ try{setTheme(localStorage.getItem('portfolio-theme')==='dark'?'dark':'light');}c
 themeButton.addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';setTheme(theme);try{localStorage.setItem('portfolio-theme',theme);}catch{}});
 document.querySelectorAll('.project-toggle').forEach(button=>button.addEventListener('click',()=>{const open=button.getAttribute('aria-expanded')==='true';button.setAttribute('aria-expanded',String(!open));document.getElementById(button.getAttribute('aria-controls')).hidden=open;button.querySelector('.expand').textContent=open?'+':'−';}));
 const sections=[...document.querySelectorAll('main>.section')];
-// Scroll chapters progressively reveal the existing sections without hiding
-// content from keyboard navigation or browsers without animation support.
+// Reveal individual items once, keeping keyboard-focused content visible.
 (() => {
   if (!('IntersectionObserver' in window)) return;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
-  const rail = document.createElement('nav');
-  rail.className = 'chapter-rail';
-  rail.setAttribute('aria-label', 'Portfolio chapters');
-  const progress = document.createElement('div');
-  progress.className = 'reading-progress';
-  progress.setAttribute('aria-hidden', 'true');
-  document.body.append(progress, rail);
-  const chapters = [document.querySelector('.hero'), ...sections];
-  const names = ['Introduction', ...sections.map(s => s.querySelector('h2').textContent.trim())];
-  chapters.forEach((section, index) => {
-    const link = document.createElement('a');
-    link.href = index === 0 ? '#top' : '#' + section.id;
-    link.setAttribute('aria-label', names[index]);
-    link.innerHTML = `<span class="chapter-dot"></span><span class="chapter-name">${names[index]}</span>`;
-    rail.append(link);
-    section.classList.add('scroll-chapter');
-    section.dataset.chapter = String(index);
-    if (index > 0) {
-      const items = section.querySelectorAll('.section-label, .section-body > p, .skills, .job, .education, .project, .resume-row, .contact-links, .email');
-      items.forEach((item, order) => {
-        item.classList.add('chapter-reveal');
-        item.style.setProperty('--reveal-delay', Math.min(order * 65, 260) + 'ms');
-      });
-    }
-  });
   const observer = new IntersectionObserver(entries => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {
-        entry.target.classList.add('chapter-arrived');
+        entry.target.classList.add('revealed');
         observer.unobserve(entry.target);
       }
     });
-  }, {threshold: .06, rootMargin: '0px 0px -5% 0px'});
-  sections.forEach(section => observer.observe(section));
-  const revealFocused = event => event.target.closest('.scroll-chapter')?.classList.add('chapter-arrived');
-  document.addEventListener('focusin', revealFocused);
-  let pending = false;
-  function update() {
-    pending = false;
-    const scrollable = document.documentElement.scrollHeight - innerHeight;
-    progress.style.transform = `scaleX(${scrollable > 0 ? scrollY / scrollable : 0})`;
-    let active = 0;
-    chapters.forEach((section, index) => {
-      const rect = section.getBoundingClientRect();
-      if (rect.top < innerHeight * .45) active = index;
-      if (!reduced.matches && index > 0) {
-        const offset = Math.max(-12, Math.min(12, (rect.top - innerHeight * .25) * .025));
-        section.style.setProperty('--chapter-shift', offset + 'px');
-      }
-    });
-    if (innerHeight + scrollY >= document.documentElement.scrollHeight - 8) active = chapters.length - 1;
-    [...rail.children].forEach((link, index) => {
-      if (index === active) link.setAttribute('aria-current', 'step');
-      else link.removeAttribute('aria-current');
-    });
-    chapters.forEach((section, index) => section.classList.toggle('chapter-active', index === active));
-  }
-  window.addEventListener('scroll', () => {if (!pending) {pending = true; requestAnimationFrame(update);}}, {passive:true});
-  window.addEventListener('resize', update, {passive:true});
-  reduced.addEventListener('change', update);
+  }, {threshold: .06, rootMargin: '0px 0px -24px 0px'});
+  const items = document.querySelectorAll('.section-label, #about .section-body, .story-heading, .story-copy, .job, .education, .other-work, .resume-row, #contact .section-body');
+  items.forEach(item => {
+    item.classList.add('chapter-reveal');
+    observer.observe(item);
+  });
+  const revealAll = () => {if (reduced.matches) items.forEach(item => item.classList.add('revealed'));};
+  reduced.addEventListener('change', revealAll);
+  document.addEventListener('focusin', event => {
+    const item = event.target.closest('.chapter-reveal');
+    if (item) {item.classList.add('revealed'); observer.unobserve(item);}
+  });
   document.documentElement.classList.add('scroll-experience');
-  update();
+  revealAll();
 })();
-if('IntersectionObserver' in window){new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting){document.querySelectorAll('header nav a').forEach(link=>link.setAttribute('aria-current',String(link.hash==='#'+entry.target.id)));}}},{rootMargin:'-15% 0px -65% 0px'}).observe(sections[0]);const observer=new IntersectionObserver(entries=>{const current=entries.find(e=>e.isIntersecting);if(current)document.querySelectorAll('header nav a').forEach(link=>link.setAttribute('aria-current',String(link.hash==='#'+current.target.id)));},{rootMargin:'-15% 0px -65% 0px'});sections.forEach(section=>observer.observe(section));}
