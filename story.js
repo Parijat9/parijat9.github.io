@@ -23,7 +23,7 @@
     pending = false;
     const animated = desktop.matches && !reduced.matches;
     root.classList.toggle('story-ready', animated);
-    root.style.setProperty('--network-opacity', String(.5 * (1 - clamp(scrollY / innerHeight))));
+    root.style.setProperty('--network-opacity', String(.72 * (1 - clamp(scrollY / innerHeight))));
     const wr = work.getBoundingClientRect();
     const fraction = clamp(-wr.top / Math.max(1, wr.height - innerHeight));
     const phase = Math.min(2, Math.floor(fraction * 3));
@@ -48,4 +48,19 @@
   reduced.addEventListener('change', update);
   desktop.addEventListener('change', update);
   update();
+  // A small pointer response on circular controls; native scrolling stays intact.
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
+  document.querySelectorAll('.about-circle, .contact-circle').forEach(button => {
+    button.addEventListener('pointermove', event => {
+      if (reduced.matches || !finePointer.matches) return;
+      const box = button.getBoundingClientRect();
+      const x = (event.clientX - box.left - box.width / 2) * .12;
+      const y = (event.clientY - box.top - box.height / 2) * .12;
+      button.style.transform = `translate(${x}px,${y}px)`;
+    });
+    const reset = () => {button.style.transform = '';};
+    button.addEventListener('pointerleave', reset);
+    button.addEventListener('blur', reset);
+    reduced.addEventListener('change', reset);
+  });
 })();

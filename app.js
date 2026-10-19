@@ -27,7 +27,7 @@
   }
   function draw(delta) {
     context.clearRect(0, 0, width, height);
-    const rgb = document.documentElement.dataset.theme === 'dark' ? '215,215,215' : '30,30,30';
+    const rgb = document.documentElement.dataset.theme === 'dark' ? '190,198,211' : '38,42,48';
     const reach = width < 600 ? 135 : 190;
     for (const p of particles) {
       if (delta) {
@@ -41,15 +41,15 @@
         if (p.y < 0 || p.y > height) {p.vy *= -1; p.y = Math.max(0, Math.min(height, p.y));}
       }
       context.beginPath(); context.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      context.fillStyle = `rgba(${rgb},.68)`; context.fill();
+      context.fillStyle = `rgba(${rgb},${.55 + p.radius * .13})`; context.fill();
     }
     for (let i = 0; i < particles.length; i++) {
       for (let j = i + 1; j < particles.length; j++) {
         const a = particles[i], b = particles[j], distance = Math.hypot(a.x - b.x, a.y - b.y);
         if (distance < reach) {
           context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(b.x, b.y);
-          context.strokeStyle = `rgba(${rgb},${.52 * (1 - distance / reach)})`;
-          context.lineWidth = 1; context.stroke();
+          context.strokeStyle = `rgba(${rgb},${.65 * (1 - distance / reach)})`;
+          context.lineWidth = .85; context.stroke();
         }
       }
       const a = particles[i], distance = Math.hypot(a.x - pointer.x, a.y - pointer.y);
