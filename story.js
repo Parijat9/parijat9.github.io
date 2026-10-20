@@ -3,16 +3,6 @@
   const root = document.documentElement;
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const desktop = matchMedia('(min-width: 851px) and (min-height: 700px)');
-  const steps = [...document.querySelectorAll('.story-step')];
-  const screen = document.querySelector('.story-screen');
-  const panels = steps.map(step => {
-    const panel = step.querySelector('.story-visual').cloneNode(true);
-    panel.inert = true;
-    panel.setAttribute('aria-hidden', 'true');
-    screen.append(panel);
-    return panel;
-  });
-  const jumps = [...document.querySelectorAll('.project-jumps a')];
   const work = document.querySelector('.work-story');
   const caption = document.querySelector('.work-caption');
   const career = document.querySelector('#experience');
@@ -23,7 +13,8 @@
   progress.className = 'reading-progress';
   progress.setAttribute('aria-hidden', 'true');
   document.body.append(progress);
-  let previousPhase = -1, previousActive = -1, previousAnimated;
+  let previousPhase = -1;
+  const chapterSurfaces = [...document.querySelectorAll('.section:not(#contact),.work-story')];
 
   const captions = ['Bring the records together.', 'Check the numbers that need attention.', 'Give the team a report they can use.'];
   const clamp = x => Math.max(0, Math.min(1, x));
@@ -37,18 +28,11 @@
     const fraction = clamp(-wr.top / Math.max(1, wr.height - innerHeight));
     const phase = Math.min(2, Math.floor(fraction * 3));
     if (phase !== previousPhase) {work.dataset.phase = String(phase); caption.textContent = captions[phase]; previousPhase = phase;}
-    let active = 0;
-    steps.forEach((step, i) => {if (step.getBoundingClientRect().top < innerHeight * .5) active = i;});
-    if (active !== previousActive || animated !== previousAnimated) {
-    panels.forEach((panel, i) => {
-      const visible = animated && i === active;
-      panel.classList.toggle('active', visible);
-      panel.inert = !visible;
-      panel.setAttribute('aria-hidden', String(!visible));
+    chapterSurfaces.forEach(section => {
+      const bottom = section.getBoundingClientRect().bottom;
+      const curve = reduced.matches ? 36 : 12 + 70 * clamp(bottom / innerHeight);
+      section.style.setProperty('--curve-depth', curve + 'px');
     });
-    jumps.forEach((a, i) => {if (i === active) a.setAttribute('aria-current', 'step'); else a.removeAttribute('aria-current');});
-    previousActive = active; previousAnimated = animated;
-    }
     const scrollable = root.scrollHeight - innerHeight;
     progress.style.transform = `scaleX(${scrollable > 0 ? clamp(scrollY / scrollable) : 0})`;
     let current = -1;
@@ -154,7 +138,8 @@
   // A screenshot trails behind the pointer; the round label follows faster.
   const preview=document.createElement('div');preview.className='pointer-preview';preview.setAttribute('aria-hidden','true');preview.inert=true;
   const reel=document.createElement('div');reel.className='preview-reel';preview.append(reel);
-  const sourceImages=[...document.querySelectorAll('.story-step>.story-visual img')];
+  const projectRows=[...document.querySelectorAll('.project-row')];
+  const sourceImages=projectRows.map(row=>{const image=new Image();image.src=row.dataset.preview;return image;});
   sourceImages.forEach(img=>{const cell=document.createElement('div');const copy=img.cloneNode();copy.alt='';copy.loading='eager';cell.append(copy);reel.append(cell);});
   const cursor=document.createElement('div');cursor.className='project-cursor';cursor.setAttribute('aria-hidden','true');cursor.textContent='View';document.body.append(preview,cursor);
   let targetX=0,targetY=0,imageX=0,imageY=0,cursorX=0,cursorY=0,previewOn=false,cursorOn=false,currentHover=null;
@@ -173,12 +158,10 @@
     hit.addEventListener('pointerup',()=>cursor.classList.remove('pressed'));
     hit.addEventListener('blur',hidePreview);
   }
-  document.querySelectorAll('.project-jumps a').forEach((a,i)=>watch(a,i,true));
-  document.querySelectorAll('.story-step').forEach((step,i)=>{
-    const title=step.querySelector('h3');const link=step.querySelector('.project-links a').cloneNode(false);link.textContent=title.textContent;title.replaceChildren(link);watch(link,i,true);
-    watch(step.querySelector('.story-visual>a'),i,false);
+  projectRows.forEach((row,i)=>{
+    watch(row.querySelector('.project-name'),i,true);
+    watch(row.querySelector('.project-links a'),i,true);
   });
-  document.querySelectorAll('.story-screen .story-visual>a').forEach((a,i)=>watch(a,i,false));
   addEventListener('blur',hidePreview);document.addEventListener('pointerleave',hidePreview);
 
   // Curved section transition; external and new-tab links keep native behavior.

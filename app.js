@@ -88,7 +88,7 @@ const sections=[...document.querySelectorAll('main>.section')];
       }
     });
   }, {threshold: .06, rootMargin: '0px 0px -24px 0px'});
-  const items = document.querySelectorAll('.section-label, #about .section-body, .story-heading, .story-copy, .job, .education, .other-work, .resume-row, #contact .section-body');
+  const items = document.querySelectorAll('.section-label, #about .section-body, .story-heading, .project-row, .job, .education, .other-work, .resume-row, #contact .section-body');
   items.forEach(item => {
     item.classList.add('chapter-reveal');
     observer.observe(item);
