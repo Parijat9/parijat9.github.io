@@ -65,34 +65,212 @@
   reduced.addEventListener('change', update);
   desktop.addEventListener('change', update);
   update();
-  // Transform the visual inside a fixed hit area so pointer bounds stay stable.
-  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
-  const resetButtons = [];
-  document.querySelectorAll('.about-circle, .contact-circle').forEach(button => {
-    const face = document.createElement('span');
-    face.className = 'magnetic-face';
-    face.append(...button.childNodes);
-    button.append(face);
-    const reset = () => {face.style.transform = '';};
-    resetButtons.push(reset);
-    button.addEventListener('pointermove', event => {
-      if (reduced.matches || !finePointer.matches || root.classList.contains('motion-paused')) return;
-      const box = button.getBoundingClientRect();
-      const x = (event.clientX - box.left - box.width / 2) * .15;
-      const y = (event.clientY - box.top - box.height / 2) * .15;
-      face.style.transform = `translate(${x}px,${y}px)`;
+})();
+// Original interaction layer: measured behavior, no reference assets or dependencies.
+(() => {
+  const root = document.documentElement;
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  const pointer = matchMedia('(hover: hover) and (pointer: fine)');
+  const hero = document.querySelector('.hero');
+  const track = document.querySelector('.name-track');
+  const toggle = document.querySelector('.menu-toggle');
+  const menu = document.querySelector('#site-menu');
+  const motion = document.querySelector('.motion-toggle');
+  const enabled = () => !reduce.matches && !root.classList.contains('motion-paused');
+  root.classList.add('motion-enhanced');
+  let frame = 0, lastTime = 0, heroVisible = true, offset = 0, direction = -1;
+  let previousScroll = scrollY, wheelTarget = scrollY, wheelActive = false, lastWritten = scrollY;
+  let routeBusy = false, menuClosing = false;
+  const magnets = [];
+  const wake = () => {if (!frame && !document.hidden) frame = requestAnimationFrame(tick);};
+  const stopWheel = () => {wheelActive = false; wheelTarget = scrollY;};
+  const canPoint = () => enabled() && pointer.matches && !root.classList.contains('intro-running');
+  const intro = document.querySelector('#intro-overlay');
+  const greeting = intro.querySelector('.intro-greeting');
+  const protectedElements = [...document.querySelectorAll('header,main,footer,body>.skip,.menu-toggle')];
+  let introTimers = [], introDone = false;
+  function finishIntro(animate = true) {
+    if (introDone) return;
+    introDone = true;
+    introTimers.forEach(clearTimeout); clearTimeout(window.introSafety);
+    const hadFocus = intro.contains(document.activeElement);
+    protectedElements.forEach(el => {el.inert = false;});
+    root.classList.remove('intro-running');
+    if (animate && enabled()) {
+      intro.classList.add('leaving');
+      const distance = innerWidth > 540 ? '50vh' : '10vh';
+      document.querySelectorAll('.hero>.eyebrow,.hero>h1,.hero>.role,.hero-actions,.name-marquee').forEach((el,i) => {
+        el.animate([{transform:`translateY(${distance})`,opacity:0},{transform:'translateY(0)',opacity:1}],{duration:1500,delay:i*70,easing:'cubic-bezier(.16,1,.3,1)'});
+      });
+      setTimeout(() => {intro.hidden = true; intro.classList.remove('leaving');},1000);
+    } else {intro.hidden = true;}
+    if (hadFocus) {const title=hero.querySelector('h1'); title.tabIndex=-1; title.focus({preventScroll:true});}
+    document.dispatchEvent(new Event('portfolio-motion-change')); wake();
+  }
+  if (root.classList.contains('intro-running') && enabled()) {
+    protectedElements.forEach(el => {el.inert = true;});
+    intro.setAttribute('aria-hidden','false');
+    const words = [['Hello','en'],['Bonjour','fr'],['स्वागत हे','hi'],['Ciao','it'],['おい','ja'],['Hallå','sv'],['Guten tag','de'],['Hallo','nl']];
+    words.forEach(([text,lang],i) => introTimers.push(setTimeout(() => {greeting.textContent=text;greeting.lang=lang;greeting.classList.add('visible');},i===0?500:900+i*150)));
+    introTimers.push(setTimeout(() => finishIntro(),2350));
+  } else finishIntro(false);
+  intro.querySelector('button').addEventListener('click',()=>finishIntro(false));
+  document.addEventListener('intro-timeout',()=>finishIntro(false));
+  addEventListener('pageshow',event=>{if(event.persisted)finishIntro(false);});
+
+  // Native dialog provides focus containment and Escape support.
+  const menuNav = menu.querySelector('nav');
+  document.querySelectorAll('header nav a').forEach((link,i)=>{const copy=link.cloneNode(true);copy.style.setProperty('--item',i);copy.removeAttribute('aria-current');menuNav.append(copy);});
+  document.querySelectorAll('.hero-bottom .social a').forEach(link=>menu.querySelector('.menu-social').append(link.cloneNode(true)));
+  function openMenu() {
+    if (menu.open || menuClosing) return;
+    stopWheel(); hidePreview(); menu.showModal(); root.classList.add('menu-open');
+    toggle.setAttribute('aria-expanded','true');
+    requestAnimationFrame(()=>menu.classList.add('is-open'));
+  }
+  function closeMenu() {
+    if (!menu.open || menuClosing) return Promise.resolve();
+    menuClosing=true;menu.classList.remove('is-open');
+    return new Promise(resolve=>setTimeout(()=>{menu.close();root.classList.remove('menu-open');toggle.setAttribute('aria-expanded','false');menuClosing=false;resolve();},enabled()?650:0));
+  }
+  toggle.addEventListener('click',openMenu);
+  menu.querySelector('.menu-close').addEventListener('click',()=>closeMenu());
+  menu.addEventListener('cancel',event=>{event.preventDefault();closeMenu();});
+  menu.addEventListener('click',event=>{const b=menu.getBoundingClientRect();if(event.clientX<b.left||event.clientY<b.top||event.clientY>b.bottom)closeMenu();});
+
+  // Fixed hit areas; shape and text use separate damped springs.
+  document.querySelectorAll('.about-circle,.contact-circle,.hero-cta,.resume-button,header nav a,.menu-toggle,.menu-social a,.contact-links a,.hero-bottom .social a').forEach(hit=>{
+    const circle=hit.matches('.about-circle,.contact-circle,.menu-toggle');
+    const surface=document.createElement('span');surface.className='magnetic-face';
+    const label=document.createElement('span');label.className='magnetic-label';
+    label.append(...hit.childNodes);surface.append(label);hit.append(surface);hit.classList.add('magnet');
+    const state={hit,surface,label,x:0,y:0,vx:0,vy:0,tx:0,ty:0,hover:false,shape:circle?70:hit.closest('nav')?20:35,text:circle?30:10};magnets.push(state);
+    hit.addEventListener('pointerenter',()=>{if(canPoint()){state.hover=true;surface.classList.remove('fill-leaving');}});
+    hit.addEventListener('pointermove',event=>{if(!canPoint())return;const b=hit.getBoundingClientRect();state.tx=(event.clientX-b.left)/b.width-.5;state.ty=(event.clientY-b.top)/b.height-.5;wake();});
+    const reset=()=>{state.hover=false;state.tx=state.ty=0;surface.classList.add('fill-leaving');wake();};
+    hit.addEventListener('pointerleave',reset);hit.addEventListener('blur',reset);
+  });
+
+  // A screenshot trails behind the pointer; the round label follows faster.
+  const preview=document.createElement('div');preview.className='pointer-preview';preview.setAttribute('aria-hidden','true');preview.inert=true;
+  const reel=document.createElement('div');reel.className='preview-reel';preview.append(reel);
+  const sourceImages=[...document.querySelectorAll('.story-step>.story-visual img')];
+  sourceImages.forEach(img=>{const cell=document.createElement('div');const copy=img.cloneNode();copy.alt='';copy.loading='eager';cell.append(copy);reel.append(cell);});
+  const cursor=document.createElement('div');cursor.className='project-cursor';cursor.setAttribute('aria-hidden','true');cursor.textContent='View';document.body.append(preview,cursor);
+  let targetX=0,targetY=0,imageX=0,imageY=0,cursorX=0,cursorY=0,previewOn=false,cursorOn=false,currentHover=null;
+  function hidePreview(){previewOn=cursorOn=false;currentHover=null;preview.classList.remove('visible');cursor.classList.remove('visible','pressed');root.classList.remove('project-pointer');}
+  function watch(hit,index,showImage){
+    hit.addEventListener('pointerenter',event=>{
+      if(!canPoint()||menu.open)return;
+      currentHover=hit;targetX=event.clientX;targetY=event.clientY;
+      if(!cursorOn){imageX=cursorX=targetX;imageY=cursorY=targetY;}
+      previewOn=showImage;cursorOn=true;reel.style.transform=`translateY(-${index*100}%)`;
+      preview.classList.toggle('visible',showImage);cursor.classList.add('visible');root.classList.add('project-pointer');wake();
     });
-    button.addEventListener('pointerleave', reset);
-    button.addEventListener('blur', reset);
-    reduced.addEventListener('change', reset);
-    finePointer.addEventListener('change', reset);
+    hit.addEventListener('pointermove',event=>{targetX=event.clientX;targetY=event.clientY;wake();});
+    hit.addEventListener('pointerleave',hidePreview);
+    hit.addEventListener('pointerdown',()=>cursor.classList.add('pressed'));
+    hit.addEventListener('pointerup',()=>cursor.classList.remove('pressed'));
+    hit.addEventListener('blur',hidePreview);
+  }
+  document.querySelectorAll('.project-jumps a').forEach((a,i)=>watch(a,i,true));
+  document.querySelectorAll('.story-step').forEach((step,i)=>{
+    const title=step.querySelector('h3');const link=step.querySelector('.project-links a').cloneNode(false);link.textContent=title.textContent;title.replaceChildren(link);watch(link,i,true);
+    watch(step.querySelector('.story-visual>a'),i,false);
   });
-  const motionButton = document.querySelector('.motion-toggle');
-  motionButton.addEventListener('click', () => {
-    const paused = root.classList.toggle('motion-paused');
-    motionButton.setAttribute('aria-pressed', String(paused));
-    motionButton.textContent = paused ? 'Resume motion' : 'Pause motion';
-    resetButtons.forEach(reset => reset());
-    document.dispatchEvent(new Event('portfolio-motion-change'));
-  });
+  document.querySelectorAll('.story-screen .story-visual>a').forEach((a,i)=>watch(a,i,false));
+  addEventListener('blur',hidePreview);document.addEventListener('pointerleave',hidePreview);
+
+  // Curved section transition; external and new-tab links keep native behavior.
+  const veil=document.createElement('div');veil.className='route-veil';veil.setAttribute('aria-hidden','true');const veilTitle=document.createElement('span');veil.append(veilTitle);document.body.append(veil);
+  function jump(link){
+    const target=document.querySelector(link.hash);if(!target)return;
+    stopWheel();history.pushState(null,'',link.hash);
+    target.scrollIntoView({behavior:'instant',block:'start'});
+    target.tabIndex=-1;target.focus({preventScroll:true});
+  }
+  document.querySelectorAll('header nav a,.monogram,.menu-content nav a').forEach(link=>link.addEventListener('click',async event=>{
+    if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+    event.preventDefault();if(routeBusy)return;routeBusy=true;stopWheel();hidePreview();
+    if(menu.open)await closeMenu();
+    if(enabled()){
+      veilTitle.textContent=link.classList.contains('monogram')?'Home':link.textContent.trim();
+      root.classList.add('route-running');veil.classList.add('cover');
+      await new Promise(resolve=>setTimeout(resolve,500));jump(link);
+      veil.classList.add('uncover');await new Promise(resolve=>setTimeout(resolve,800));
+      veil.classList.remove('cover','uncover');root.classList.remove('route-running');
+    }else jump(link);
+    routeBusy=false;
+  }));
+  addEventListener('popstate',()=>{stopWheel();hidePreview();if(menu.open)closeMenu();});
+
+  // Native document positions keep sticky scenes, anchors and keyboard scrolling intact.
+  function nativeArea(event){
+    for(let el=event.target;el&&el!==document.body;el=el.parentElement){
+      if(el.matches?.('input,textarea,select,[contenteditable="true"]'))return true;
+      if(el.scrollHeight>el.clientHeight+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowY))return true;
+    }return false;
+  }
+  addEventListener('wheel',event=>{
+    if(!canPoint()||menu.open||routeBusy||event.ctrlKey||event.metaKey||Math.abs(event.deltaX)>Math.abs(event.deltaY)||nativeArea(event))return;
+    const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?innerHeight:1);
+    if(!wheelActive)wheelTarget=scrollY;
+    wheelTarget=Math.max(0,Math.min(root.scrollHeight-innerHeight,wheelTarget+delta));
+    if(Math.abs(wheelTarget-scrollY)<.5)return;
+    event.preventDefault();wheelActive=true;wake();
+  },{passive:false});
+  addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' ','Tab'].includes(event.key))stopWheel();});
+  addEventListener('pointerdown',stopWheel,{passive:true});
+  document.addEventListener('focusin',stopWheel);
+  addEventListener('scroll',()=>{
+    const delta=scrollY-previousScroll;if(Math.abs(delta)>.5)direction=delta>0?-1:1;
+    previousScroll=scrollY;
+    if(wheelActive&&Math.abs(scrollY-lastWritten)>3)stopWheel();
+    toggle.classList.toggle('is-scrolled',scrollY>innerHeight*.3);
+    if(currentHover&&!currentHover.contains(document.elementFromPoint(targetX,targetY)))hidePreview();
+    wake();
+  },{passive:true});
+  new IntersectionObserver(entries=>{heroVisible=entries[0].isIntersecting;wake();}).observe(hero);
+  function resetMotion(){
+    stopWheel();hidePreview();magnets.forEach(m=>{m.x=m.y=m.tx=m.ty=m.vx=m.vy=0;m.surface.style.transform='';m.label.style.transform='';});
+    if(reduce.matches)finishIntro(false);
+    document.dispatchEvent(new Event('portfolio-motion-change'));wake();
+  }
+  motion.addEventListener('click',()=>{const paused=root.classList.toggle('motion-paused');motion.setAttribute('aria-pressed',String(paused));motion.textContent=paused?'Resume motion':'Pause motion';resetMotion();});
+  reduce.addEventListener('change',resetMotion);pointer.addEventListener('change',resetMotion);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;lastTime=0;stopWheel();hidePreview();}else wake();});
+  addEventListener('resize',()=>{stopWheel();wake();});
+  function tick(time){
+    frame=0;const dt=Math.min((time-(lastTime||time-16.67))/16.67,2);lastTime=time;
+    if(document.hidden)return;
+    let busy=false;
+    if(wheelActive&&enabled()){
+      const next=scrollY+(wheelTarget-scrollY)*(1-Math.pow(.90,dt));
+      lastWritten=Math.abs(wheelTarget-next)<.5?wheelTarget:next;
+      window.scrollTo({top:lastWritten,behavior:'instant'});
+      if(Math.abs(wheelTarget-scrollY)<1)wheelActive=false;else busy=true;
+    }
+    if(canPoint()){
+      magnets.forEach(m=>{
+        const stiffness=m.hover?.10:.075, damping=m.hover?.65:.78;
+        m.vx=(m.vx+(m.tx-m.x)*stiffness*dt)*Math.pow(damping,dt);m.vy=(m.vy+(m.ty-m.y)*stiffness*dt)*Math.pow(damping,dt);
+        m.x+=m.vx*dt;m.y+=m.vy*dt;
+        if(Math.abs(m.tx-m.x)+Math.abs(m.ty-m.y)+Math.abs(m.vx)+Math.abs(m.vy)>.0003){
+          m.surface.style.transform=`translate3d(${m.x*m.shape}px,${m.y*m.shape}px,0)`;m.label.style.transform=`translate3d(${m.x*m.text}px,${m.y*m.text}px,0)`;busy=true;
+        }else if(!m.hover){m.surface.style.transform='';m.label.style.transform='';}
+      });
+      if(cursorOn){
+        imageX+=(targetX-imageX)*(1-Math.pow(11/12,dt*2));imageY+=(targetY-imageY)*(1-Math.pow(11/12,dt*2));
+        cursorX+=(targetX-cursorX)*(1-Math.pow(6/7,dt*2));cursorY+=(targetY-cursorY)*(1-Math.pow(6/7,dt*2));
+        preview.style.translate=`${imageX}px ${imageY}px`;cursor.style.translate=`${cursorX}px ${cursorY}px`;
+        if(Math.abs(targetX-imageX)+Math.abs(targetY-imageY)>.1)busy=true;
+      }
+    }
+    if(enabled()&&heroVisible&&!root.classList.contains('intro-running')&&!menu.open){
+      const period=track.scrollWidth/2;offset+=direction*period/18000*(dt*16.67);
+      if(period){offset=((offset%period)-period)%period;track.style.transform=`translate3d(${offset}px,0,0)`;}busy=true;
+    }
+    if(busy)wake();else lastTime=0;
+  }
+  wake();
 })();

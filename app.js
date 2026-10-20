@@ -10,7 +10,6 @@
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
   let width = 0, height = 0, particles = [], frame = 0, previous = 0;
   let heroVisible = true;
-  const pointer = {x: -1000, y: -1000};
   function resize() {
     width = window.innerWidth;
     height = window.innerHeight;
@@ -33,11 +32,6 @@
     for (const p of particles) {
       if (delta) {
         p.x += p.vx * delta; p.y += p.vy * delta;
-        const dx = p.x - pointer.x, dy = p.y - pointer.y, distance = Math.hypot(dx, dy);
-        if (distance > 0 && distance < 105) {
-          const force = (1 - distance / 105) * .55 * delta;
-          p.x += dx / distance * force; p.y += dy / distance * force;
-        }
         if (p.x < 0 || p.x > width) {p.vx *= -1; p.x = Math.max(0, Math.min(width, p.x));}
         if (p.y < 0 || p.y > height) {p.vy *= -1; p.y = Math.max(0, Math.min(height, p.y));}
       }
@@ -53,12 +47,7 @@
           context.lineWidth = .85; context.stroke();
         }
       }
-      const a = particles[i], distance = Math.hypot(a.x - pointer.x, a.y - pointer.y);
-      if (distance < reach && !reducedMotion.matches) {
-        context.beginPath(); context.moveTo(a.x, a.y); context.lineTo(pointer.x, pointer.y);
-        context.strokeStyle = `rgba(${rgb},${.62 * (1 - distance / reach)})`;
-        context.lineWidth = 1.15; context.stroke();
-      }
+
     }
   }
   function animate(time) {
@@ -72,11 +61,6 @@
     else draw(0);
   }
   window.addEventListener('resize', resize, {passive: true});
-  window.addEventListener('pointermove', event => {
-    if (event.pointerType !== 'touch') {pointer.x = event.clientX; pointer.y = event.clientY;}
-  }, {passive: true});
-  document.addEventListener('pointerleave', () => {pointer.x = pointer.y = -1000;});
-  window.addEventListener('blur', () => {pointer.x = pointer.y = -1000;});
   document.addEventListener('visibilitychange', start);
   reducedMotion.addEventListener('change', start);
   document.addEventListener('portfolio-motion-change', start);
