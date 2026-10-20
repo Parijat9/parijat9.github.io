@@ -62,8 +62,8 @@
   const motion = document.querySelector('.motion-toggle');
   const enabled = () => !reduce.matches && !root.classList.contains('motion-paused');
   root.classList.add('motion-enhanced');
-  let frame = 0, lastTime = 0, heroVisible = true, offset = 0, direction = -1;
-  let previousScroll = scrollY, wheelTarget = scrollY, wheelActive = false, lastWritten = scrollY;
+  let frame = 0, lastTime = 0, heroVisible = true, offset = 0;
+  let wheelTarget = scrollY, wheelActive = false, lastWritten = scrollY;
   let routeBusy = false, menuClosing = false;
   const magnets = [];
   const wake = () => {if (!frame && !document.hidden) frame = requestAnimationFrame(tick);};
@@ -139,29 +139,33 @@
   const preview=document.createElement('div');preview.className='pointer-preview';preview.setAttribute('aria-hidden','true');preview.inert=true;
   const reel=document.createElement('div');reel.className='preview-reel';preview.append(reel);
   const projectRows=[...document.querySelectorAll('.project-row')];
-  const sourceImages=projectRows.map(row=>{const image=new Image();image.src=row.dataset.preview;return image;});
-  sourceImages.forEach(img=>{const cell=document.createElement('div');const copy=img.cloneNode();copy.alt='';copy.loading='eager';cell.append(copy);reel.append(cell);});
+  projectRows.forEach(row=>{
+    const cell=document.createElement('div');
+    if(row.dataset.preview){const img=new Image();img.src=row.dataset.preview;img.alt='';cell.append(img);}
+    else {cell.className='private-preview';const label=document.createElement('small');label.textContent='Private repo';const title=document.createElement('strong');title.textContent=row.querySelector('.project-name').textContent;const summary=document.createElement('p');summary.textContent=row.querySelector('h4').textContent;cell.append(label,title,summary);}
+    reel.append(cell);
+  });
   const cursor=document.createElement('div');cursor.className='project-cursor';cursor.setAttribute('aria-hidden','true');cursor.textContent='View';document.body.append(preview,cursor);
   let targetX=0,targetY=0,imageX=0,imageY=0,cursorX=0,cursorY=0,previewOn=false,cursorOn=false,currentHover=null;
   function hidePreview(){previewOn=cursorOn=false;currentHover=null;preview.classList.remove('visible');cursor.classList.remove('visible','pressed');root.classList.remove('project-pointer');}
-  function watch(hit,index,showImage){
-    hit.addEventListener('pointerenter',event=>{
-      if(!canPoint()||menu.open)return;
-      currentHover=hit;targetX=event.clientX;targetY=event.clientY;
-      if(!cursorOn){imageX=cursorX=targetX;imageY=cursorY=targetY;}
-      previewOn=showImage;cursorOn=true;reel.style.transform=`translateY(-${index*100}%)`;
-      preview.classList.toggle('visible',showImage);cursor.classList.add('visible');root.classList.add('project-pointer');wake();
-    });
-    hit.addEventListener('pointermove',event=>{targetX=event.clientX;targetY=event.clientY;wake();});
-    hit.addEventListener('pointerleave',hidePreview);
-    hit.addEventListener('pointerdown',()=>cursor.classList.add('pressed'));
-    hit.addEventListener('pointerup',()=>cursor.classList.remove('pressed'));
-    hit.addEventListener('blur',hidePreview);
+  const projectSection=document.querySelector('#projects');
+  function updatePreview(event){
+    if(!canPoint()||menu.open)return;
+    if(event){targetX=event.clientX;targetY=event.clientY;}
+    const hit=document.elementFromPoint(targetX,targetY);
+    if(!projectSection.contains(hit)){hidePreview();return;}
+    const row=hit.closest('.project-row')||projectRows.reduce((nearest,item)=>Math.abs(item.getBoundingClientRect().top+item.offsetHeight/2-targetY)<Math.abs(nearest.getBoundingClientRect().top+nearest.offsetHeight/2-targetY)?item:nearest);
+    if(!cursorOn){imageX=cursorX=targetX;imageY=cursorY=targetY;}
+    currentHover=projectSection;previewOn=cursorOn=true;
+    reel.style.transform=`translateY(-${projectRows.indexOf(row)*100}%)`;
+    cursor.textContent=row.dataset.private?'Private':'View';
+    preview.classList.add('visible');cursor.classList.add('visible');root.classList.add('project-pointer');wake();
   }
-  projectRows.forEach((row,i)=>{
-    watch(row.querySelector('.project-name'),i,true);
-    watch(row.querySelector('.project-links a'),i,true);
-  });
+  projectSection.addEventListener('pointerenter',updatePreview);
+  projectSection.addEventListener('pointermove',updatePreview);
+  projectSection.addEventListener('pointerleave',hidePreview);
+  projectSection.addEventListener('pointerdown',()=>cursor.classList.add('pressed'));
+  projectSection.addEventListener('pointerup',()=>cursor.classList.remove('pressed'));
   addEventListener('blur',hidePreview);document.addEventListener('pointerleave',hidePreview);
 
   // Curved section transition; external and new-tab links keep native behavior.
@@ -206,11 +210,9 @@
   addEventListener('pointerdown',stopWheel,{passive:true});
   document.addEventListener('focusin',stopWheel);
   addEventListener('scroll',()=>{
-    const delta=scrollY-previousScroll;if(Math.abs(delta)>.5)direction=delta>0?-1:1;
-    previousScroll=scrollY;
     if(wheelActive&&Math.abs(scrollY-lastWritten)>3)stopWheel();
     toggle.classList.toggle('is-scrolled',scrollY>innerHeight*.3);
-    if(currentHover&&!currentHover.contains(document.elementFromPoint(targetX,targetY)))hidePreview();
+    if(currentHover)updatePreview();
     wake();
   },{passive:true});
   new IntersectionObserver(entries=>{heroVisible=entries[0].isIntersecting;wake();}).observe(hero);
@@ -250,7 +252,7 @@
       }
     }
     if(enabled()&&heroVisible&&!root.classList.contains('intro-running')&&!menu.open){
-      const period=track.scrollWidth/2;offset+=direction*period/18000*(dt*16.67);
+      const period=track.scrollWidth/4;offset-=period/9000*(dt*16.67);
       if(period){offset=((offset%period)-period)%period;track.style.transform=`translate3d(${offset}px,0,0)`;}busy=true;
     }
     if(busy)wake();else lastTime=0;
