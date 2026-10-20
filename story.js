@@ -62,7 +62,8 @@
   const motion = document.querySelector('.motion-toggle');
   const enabled = () => !reduce.matches && !root.classList.contains('motion-paused');
   root.classList.add('motion-enhanced');
-  let frame = 0, lastTime = 0, heroVisible = true, offset = 0;
+  let frame = 0, lastTime = 0, heroVisible = true, offset = 0, direction = -1;
+  let previousScroll = scrollY;
   let wheelTarget = scrollY, wheelActive = false, lastWritten = scrollY;
   let routeBusy = false, menuClosing = false;
   const magnets = [];
@@ -210,6 +211,9 @@
   addEventListener('pointerdown',stopWheel,{passive:true});
   document.addEventListener('focusin',stopWheel);
   addEventListener('scroll',()=>{
+    const delta = scrollY - previousScroll;
+    if (Math.abs(delta) > .5) direction = delta > 0 ? 1 : -1;
+    previousScroll = scrollY;
     if(wheelActive&&Math.abs(scrollY-lastWritten)>3)stopWheel();
     toggle.classList.toggle('is-scrolled',scrollY>innerHeight*.3);
     if(currentHover)updatePreview();
@@ -252,7 +256,7 @@
       }
     }
     if(enabled()&&heroVisible&&!root.classList.contains('intro-running')&&!menu.open){
-      const period=track.scrollWidth/4;offset-=period/9000*(dt*16.67);
+      const period=track.scrollWidth/4;offset+=direction*period/9000*(dt*16.67);
       if(period){offset=((offset%period)-period)%period;track.style.transform=`translate3d(${offset}px,0,0)`;}busy=true;
     }
     if(busy)wake();else lastTime=0;
