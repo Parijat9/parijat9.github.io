@@ -99,7 +99,7 @@
     if (animate && enabled()) {
       intro.classList.add('leaving');
       const distance = innerWidth > 540 ? '50vh' : '10vh';
-      document.querySelectorAll('.hero>.eyebrow,.hero>h1,.hero>.role,.hero-actions,.name-marquee').forEach((el,i) => {
+      document.querySelectorAll('.hero-portrait,.hero>.eyebrow,.hero>h1,.hero>.role,.hero-actions,.name-marquee').forEach((el,i) => {
         el.animate([{transform:`translateY(${distance})`,opacity:0},{transform:'translateY(0)',opacity:1}],{duration:1500,delay:i*70,easing:'cubic-bezier(.16,1,.3,1)'});
       });
       setTimeout(() => {intro.hidden = true; intro.classList.remove('leaving');},1000);
