@@ -5,8 +5,6 @@
   const desktop = matchMedia('(min-width: 851px) and (min-height: 700px)');
   const work = document.querySelector('.work-story');
   const caption = document.querySelector('.work-caption');
-  const career = document.querySelector('#experience');
-  const jobs = [...career.querySelectorAll('.job')];
   const navLinks = [...document.querySelectorAll('header nav a')];
   const navSections = navLinks.map(link => document.querySelector(link.hash));
   const progress = document.createElement('div');
@@ -39,9 +37,6 @@
     navSections.forEach((section, i) => {if (section.getBoundingClientRect().top < innerHeight * .45) current = i;});
     if (scrollY + innerHeight >= root.scrollHeight - 8) current = navSections.length - 1;
     navLinks.forEach((link, i) => {if (i === current) link.setAttribute('aria-current', 'true'); else link.removeAttribute('aria-current');});
-    const cr = career.getBoundingClientRect();
-    career.style.setProperty('--career-progress', clamp((innerHeight * .7 - cr.top) / cr.height));
-    jobs.forEach(job => job.classList.toggle('in-view', job.getBoundingClientRect().top < innerHeight * .7));
   }
   function schedule() {if (!pending) {pending = true; requestAnimationFrame(update);}}
   addEventListener('scroll', schedule, {passive:true});
