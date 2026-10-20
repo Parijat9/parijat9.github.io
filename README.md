@@ -1,24 +1,30 @@
-# Parijat Anand
+# Parijat Anand — Portfolio
 
-My portfolio brings together my work experience, projects and résumé.
+Reporting, business decisions and workflow automation in logistics.
 
-[Visit the website](https://parijat9.github.io/)
+[Visit the portfolio](https://parijat9.github.io/) · [View résumé](https://parijat9.github.io/assets/parijat-anand-resume.pdf)
 
-![Portfolio preview](assets/portfolio-preview.png)
+## The website
 
-## What you can explore
+![Portfolio homepage with portrait and introduction](assets/portfolio-preview.png)
 
-- Experience in logistics reporting and automation.
-- Project summaries with screenshots and links to sample reports.
-- A downloadable résumé and contact links.
-- Light and dark themes, with chapter navigation as you scroll.
+Six projects covering customer reporting, meeting follow-up, freight billing, shipment issues, capacity planning and data checks. Each explains the challenge, responsibility, approach, decision supported and available evidence.
 
-## Run it locally
+![Project case studies on the portfolio](assets/portfolio-projects.png)
 
-```bash
+Screenshots captured from the published website on 20 October 2026.
+
+## Run locally
+
+```sh
 python -m http.server 8000
 ```
 
-Open `http://localhost:8000` in a browser. The site uses HTML, CSS and JavaScript. GitHub Pages publishes the main branch.
+Open http://localhost:8000. No package installation or build step is required.
 
-Edit `index.html` for the wording, `style.css` for the appearance and `app.js` for the interactions.
+- `index.html`: content and page structure.
+- `style.css` and `story.css`: layout, responsive styles and transitions.
+- `app.js` and `story.js`: navigation, motion and project previews.
+- `reports/`: public demonstration reports.
+
+GitHub Pages publishes the `main` branch. The site supports keyboard navigation, reduced motion and a motion pause control.
