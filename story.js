@@ -54,7 +54,6 @@
   const track = document.querySelector('.name-track');
   const toggle = document.querySelector('.menu-toggle');
   const menu = document.querySelector('#site-menu');
-  const motion = document.querySelector('.motion-toggle');
   const enabled = () => !reduce.matches && !root.classList.contains('motion-paused');
   root.classList.add('motion-enhanced');
   let frame = 0, lastTime = 0, heroVisible = true, offset = 0, direction = -1;
@@ -94,7 +93,6 @@
     words.forEach(([text,lang],i) => introTimers.push(setTimeout(() => {greeting.textContent=text;greeting.lang=lang;greeting.classList.add('visible');},i===0?500:900+i*150)));
     introTimers.push(setTimeout(() => finishIntro(),2350));
   } else finishIntro(false);
-  intro.querySelector('button').addEventListener('click',()=>finishIntro(false));
   document.addEventListener('intro-timeout',()=>finishIntro(false));
   addEventListener('pageshow',event=>{if(event.persisted)finishIntro(false);});
 
@@ -142,8 +140,8 @@
     reel.append(cell);
   });
   const cursor=document.createElement('div');cursor.className='project-cursor';cursor.setAttribute('aria-hidden','true');cursor.textContent='View';document.body.append(preview,cursor);
-  let targetX=0,targetY=0,imageX=0,imageY=0,cursorX=0,cursorY=0,previewOn=false,cursorOn=false,currentHover=null;
-  function hidePreview(){previewOn=cursorOn=false;currentHover=null;preview.classList.remove('visible');cursor.classList.remove('visible','pressed');root.classList.remove('project-pointer');}
+  let targetX=0,targetY=0,imageX=0,imageY=0,cursorX=0,cursorY=0,previewOn=false,cursorOn=false,currentHover=null,activePreviewRow=null;
+  function hidePreview(){previewOn=cursorOn=false;currentHover=null;activePreviewRow=null;preview.classList.remove('visible');cursor.classList.remove('visible','pressed');root.classList.remove('project-pointer');}
   const projectSection=document.querySelector('#projects');
   function updatePreview(event){
     if(!canPoint()||menu.open)return;
@@ -152,11 +150,17 @@
     if(!projectSection.contains(hit)){hidePreview();return;}
     const row=hit.closest('.project-row')||projectRows.reduce((nearest,item)=>Math.abs(item.getBoundingClientRect().top+item.offsetHeight/2-targetY)<Math.abs(nearest.getBoundingClientRect().top+nearest.offsetHeight/2-targetY)?item:nearest);
     if(!cursorOn){imageX=cursorX=targetX;imageY=cursorY=targetY;}
-    currentHover=projectSection;previewOn=cursorOn=true;
+    currentHover=projectSection;activePreviewRow=row;previewOn=cursorOn=true;
     reel.style.transform=`translateY(-${projectRows.indexOf(row)*100}%)`;
     cursor.textContent=row.dataset.private?'Private':'View';
     preview.classList.add('visible');cursor.classList.add('visible');root.classList.add('project-pointer');wake();
   }
+  // The floating View label follows the pointer; clicking its row opens that report.
+  projectSection.addEventListener('click',event=>{
+    if(event.button!==0||!cursorOn||!activePreviewRow||event.target.closest('a,button,input,select,textarea')||window.getSelection()?.toString())return;
+    const link=activePreviewRow.querySelector('.project-name[href]');
+    if(link)link.click();
+  });
   projectSection.addEventListener('pointerenter',updatePreview);
   projectSection.addEventListener('pointermove',updatePreview);
   projectSection.addEventListener('pointerleave',hidePreview);
@@ -220,7 +224,6 @@
     if(reduce.matches)finishIntro(false);
     document.dispatchEvent(new Event('portfolio-motion-change'));wake();
   }
-  motion.addEventListener('click',()=>{const paused=root.classList.toggle('motion-paused');motion.setAttribute('aria-pressed',String(paused));motion.textContent=paused?'Resume motion':'Pause motion';resetMotion();});
   reduce.addEventListener('change',resetMotion);pointer.addEventListener('change',resetMotion);
   document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelAnimationFrame(frame);frame=0;lastTime=0;stopWheel();hidePreview();}else wake();});
   addEventListener('resize',()=>{stopWheel();wake();});
