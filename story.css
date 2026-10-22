@@ -138,3 +138,11 @@ footer{position:relative;z-index:1;width:100%;margin:0;padding:35px max(6vw,calc
 }
 @media print{.hero.has-portrait.hero--minimal{height:300px;min-height:0}.hero.has-portrait.hero--minimal h1{top:30px}}
 @media(min-width:701px) and (max-height:800px){.hero.has-portrait.hero--minimal h1{top:12%}.has-portrait.hero--minimal .location-tag{top:28%}}
+
+/* Keep the mobile report scene inset, including its non-sticky fallback. */
+@media(max-width:700px){
+.work-story,html:not(.story-ready) .work-story{padding:88px max(20px,5.5vw) 72px}
+.work-story .work-sticky{grid-template-columns:minmax(0,1fr);gap:28px}
+.work-story .work-tools{margin-bottom:0}
+.work-story .work-steps{padding-top:0;gap:12px}
+}
