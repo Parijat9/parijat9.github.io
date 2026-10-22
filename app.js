@@ -1,6 +1,7 @@
 'use strict';
 // Decorative network: no requests, tracking, or changes to page content.
 (() => {
+  if (document.querySelector('.hero--minimal')) return;
   const canvas = document.createElement('canvas');
   canvas.id = 'particle-background';
   canvas.setAttribute('aria-hidden', 'true');

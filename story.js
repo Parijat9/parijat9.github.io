@@ -99,7 +99,7 @@
   // Native dialog provides focus containment and Escape support.
   const menuNav = menu.querySelector('nav');
   document.querySelectorAll('header nav a').forEach((link,i)=>{const copy=link.cloneNode(true);copy.style.setProperty('--item',i);copy.removeAttribute('aria-current');menuNav.append(copy);});
-  document.querySelectorAll('.hero-bottom .social a').forEach(link=>menu.querySelector('.menu-social').append(link.cloneNode(true)));
+  document.querySelectorAll('.contact-links a:not(#resume)').forEach(link=>menu.querySelector('.menu-social').append(link.cloneNode(true)));
   function openMenu() {
     if (menu.open || menuClosing) return;
     stopWheel(); hidePreview(); menu.showModal(); root.classList.add('menu-open');

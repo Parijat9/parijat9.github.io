@@ -112,3 +112,28 @@ footer{position:relative;z-index:1;width:100%;margin:0;padding:35px max(6vw,calc
 
 /* Business case details remain readable without hover or JavaScript. */
 .case-study{margin:0;display:grid;gap:15px}.case-study>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:16px}.case-study dt{font-size:12px;font-weight:600;color:var(--fg);padding-top:3px}.case-study dd{margin:0;font-size:16px;line-height:1.65;color:var(--muted)}#contact .closing-name{font-size:clamp(30px,3.4vw,52px);line-height:1.18;max-width:24ch}@media(max-width:700px){.case-study>div{grid-template-columns:1fr;gap:4px}.case-study{gap:18px}#contact .closing-name{font-size:34px}}
+
+/* A single portrait-led introduction, with separate space for the moving name. */
+.hero.has-portrait.hero--minimal,.scroll-experience .hero.has-portrait.hero--minimal{height:calc(100svh - 100px);min-height:580px;padding:0;border:0}
+.hero--minimal .hero-portrait{top:-100px;bottom:0;left:12%;right:auto;width:72%;mask-image:linear-gradient(to right,transparent,#000 24%,#000 67%,transparent);mask-composite:add}
+.hero--minimal .hero-portrait img{object-position:50% 38%}
+.hero.has-portrait.hero--minimal h1{position:absolute;top:20%;left:74%;max-width:none;width:26%;margin:0;font-size:clamp(26px,2.5vw,48px);line-height:1.28;font-weight:400;letter-spacing:-.045em;color:var(--fg)}
+.hero-direction{display:block;margin-bottom:32px;font-size:36px;color:inherit}
+.has-portrait.hero--minimal .location-tag{position:absolute;top:38%;left:calc((100% - 100vw)/2);transform:none;margin:0;padding-left:clamp(24px,3vw,56px);gap:22px}
+.has-portrait.hero--minimal .name-marquee{bottom:18px;mask-image:none}
+.has-portrait.hero--minimal .name-track span{font-size:clamp(120px,19vw,365px);line-height:1.1}
+#about .intro em{font-family:Georgia,'Times New Roman',serif;font-weight:400}
+@media(max-width:1000px) and (min-width:701px){.hero.has-portrait.hero--minimal h1{left:70%;width:30%;font-size:30px}.hero--minimal .hero-portrait{left:5%;width:80%}.has-portrait.hero--minimal .location-tag{padding:14px 16px 14px 22px;gap:14px}.hero--minimal .location-globe{width:46px;height:46px}}
+@media(max-width:700px){
+.hero.has-portrait.hero--minimal,.scroll-experience .hero.has-portrait.hero--minimal{height:calc(100svh - 110px);min-height:590px;padding:0}
+.hero--minimal .hero-portrait{top:70px;bottom:0;left:calc((100% - 100vw)/2);right:auto;width:100vw;mask-image:linear-gradient(to bottom,transparent,#000 17%,#000 92%,transparent)}
+.hero--minimal .hero-portrait img{object-position:50% 38%}
+.hero.has-portrait.hero--minimal h1{top:30px;left:auto;right:0;width:auto;max-width:62%;font-size:clamp(23px,6.3vw,36px);line-height:1.2}
+.hero-direction{font-size:24px;margin-bottom:12px}
+.has-portrait.hero--minimal .location-tag{top:45%;padding:12px 14px 12px 20px;font-size:11px;gap:14px}
+.hero--minimal .location-tag br{display:block}
+.hero--minimal .location-globe{width:40px;height:40px}
+.has-portrait.hero--minimal .name-marquee{bottom:24px}
+.has-portrait.hero--minimal .name-track span{font-size:27vw}
+}
+@media print{.hero.has-portrait.hero--minimal{height:300px;min-height:0}.hero.has-portrait.hero--minimal h1{top:30px}}
